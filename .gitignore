@@ -9,3 +9,5 @@
 # 如果 LightRAG 是你另外下載的套件，不需要重複上傳，也可以忽略
 
 LightRAG_Benchmark/
+PhishRAG/lightrag-package.zip
+lightrag-package/init/01_full_backup.sql
