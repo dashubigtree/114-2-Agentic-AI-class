@@ -1,0 +1,107 @@
+# PhishRAG v1 — 統一 Docker Compose
+# 四個服務：PostgreSQL · LightRAG · Flask Backend · Streamlit Frontend
+# 啟動：docker compose up -d
+# 停止：docker compose down
+
+name: phishrag-v1
+
+services:
+
+  # ── 1. PostgreSQL（pgvector + AGE，LightRAG 資料後端）──────────────────────
+  postgres:
+    image: vishva123/postgres-for-ai:latest
+    container_name: phishrag-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my_secure_password_123
+      POSTGRES_DB: rag
+    command: ["-c", "max_connections=25"]
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./lightrag-package/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks: [phishrag-net]
+
+  # ── 2. LightRAG API（知識圖譜檢索服務）────────────────────────────────────
+  lightrag:
+    image: ghcr.io/hkuds/lightrag:latest
+    container_name: phishrag-lightrag
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "9621:9621"
+    volumes:
+      - ./LightRAG/data/rag_storage:/app/data/rag_storage
+      - ./LightRAG/data/inputs:/app/data/inputs
+      - ./LightRAG/data/prompts:/app/data/prompts
+      - ./LightRAG/.env:/app/.env
+    environment:
+      WORKING_DIR: "/app/data/rag_storage"
+      INPUT_DIR: "/app/data/inputs"
+      PROMPT_DIR: "/app/data/prompts"
+      HOST: "0.0.0.0"
+      PORT: "9621"
+      POSTGRES_HOST: "postgres"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9621/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+    restart: on-failure
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [phishrag-net]
+
+  # ── 3. PhishRAG Flask 後端（ML 流水線 + LightRAG 代理）─────────────────────
+  phishrag-backend:
+    build:
+      context: ./PhishRAG
+    container_name: phishrag-backend
+    command: python app.py
+    depends_on:
+      lightrag:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      LIGHTRAG_URL: "http://lightrag:9621"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks: [phishrag-net]
+
+  # ── 4. PhishRAG Streamlit 前端（儀表板 UI）─────────────────────────────────
+  phishrag-frontend:
+    build:
+      context: ./PhishRAG
+    container_name: phishrag-frontend
+    command: >
+      streamlit run dashboard.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.headless=true
+    depends_on:
+      phishrag-backend:
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_URL: "http://phishrag-backend:5000"
+    networks: [phishrag-net]
+
+networks:
+  phishrag-net:
+    driver: bridge
+
+volumes:
+  postgres_data:

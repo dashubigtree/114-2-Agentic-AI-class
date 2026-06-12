@@ -1,0 +1,45 @@
+2026-06-07 16:56:15,607 INFO ¥¿¦b±q C:\Users\games\OneDrive\Desktop\PhishRAG¸ê®Æ§¨\PhishRAG\PhishRAG_MLPipeline ¸ü¤J ML ¤¸¥ó...
+C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\sklearn\base.py:525: InconsistentVersionWarning: Trying to unpickle estimator LabelEncoder from version 1.3.2 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+2026-06-07 16:56:15,776 INFO ML ¤¸¥ó¸ü¤J§¹¦¨ | FEATURE_COLS=76 | TF-IDF vocab=50
+2026-06-07 16:56:17,051 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.200.136:5000
+2026-06-07 16:56:17,054 INFO [33mPress CTRL+C to quit[0m
+2026-06-07 16:56:21,320 INFO 127.0.0.1 - - [07/Jun/2026 16:56:21] "GET /health HTTP/1.1" 200 -
+2026-06-07 16:56:34,044 INFO 127.0.0.1 - - [07/Jun/2026 16:56:34] "GET /health HTTP/1.1" 200 -
+2026-06-07 17:27:47,982 ERROR ML ¬y¤ô½u¿ù»~
+Traceback (most recent call last):
+  File "C:\Users\games\OneDrive\Desktop\PhishRAG¸ê®Æ§¨\PhishRAG\app.py", line 332, in analyze
+    ml_result = run_ml_pipeline(email_content)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\OneDrive\Desktop\PhishRAG¸ê®Æ§¨\PhishRAG\app.py", line 188, in run_ml_pipeline
+    is_phishing = int(model_a.predict(X)[0])
+                      ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\xgboost\sklearn.py", line 1525, in predict
+    class_probs = super().predict(
+                  ^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\xgboost\sklearn.py", line 1112, in predict
+    if self._can_use_inplace_predict():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\xgboost\sklearn.py", line 1047, in _can_use_inplace_predict
+    predictor = self.get_xgb_params().get("predictor", None)
+                ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\xgboost\sklearn.py", line 708, in get_xgb_params
+    params: Dict[str, Any] = self.get_params()
+                             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\xgboost\sklearn.py", line 695, in get_params
+    params.update(cp.__class__.get_params(cp, deep))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\xgboost\sklearn.py", line 692, in get_params
+    params = super().get_params(deep)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\sklearn\base.py", line 265, in get_params
+    value = getattr(self, key)
+            ^^^^^^^^^^^^^^^^^^
+AttributeError: 'XGBModel' object has no attribute 'callbacks'
+2026-06-07 17:27:47,988 INFO 127.0.0.1 - - [07/Jun/2026 17:27:47] "[35m[1mPOST /api/v1/analyze HTTP/1.1[0m" 500 -
+2026-06-08 08:38:52,377 INFO 127.0.0.1 - - [08/Jun/2026 08:38:52] "[33mGET / HTTP/1.1[0m" 404 -
+2026-06-08 08:38:52,606 INFO 127.0.0.1 - - [08/Jun/2026 08:38:52] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -

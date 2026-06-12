@@ -1,0 +1,26 @@
+services:
+  lightrag-postgres:
+    image: vishva123/postgres-for-ai:latest
+    container_name: lightrag-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my_secure_password_123
+      POSTGRES_DB: rag
+    ports:
+      - "5432:5432"
+    volumes:
+      # 【修改 1】將內部路徑尾巴的 /data 拿掉，直接掛載到 /var/lib/postgresql (符合 18+ 規範)
+      - lightrag_data_v18:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d
+    # 【修改 2】將啟動命令加上 -c max_connections=25，完美對接你的 .env 設定
+    command: ["-c", "max_connections=25"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  # 【修改 3】給 Volume 換一個全新的名字，強迫 Docker 建立一個 100% 乾淨無污染的虛擬空間
+  lightrag_data_v18:

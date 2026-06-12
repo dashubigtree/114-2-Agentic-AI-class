@@ -1,0 +1,204 @@
+PhishRAG Pipeline 說明文件
+1. 系統概述
+PhishRAG 是一個釣魚郵件多標籤分類系統，輸入一封原始郵件文字，自動輸出三個判斷結果：
+
+輸出	說明
+is_phishing	是否為釣魚信件（0 = 正常，1 = 釣魚）
+phishing_type	釣魚類型（10 種之一）
+severity	嚴重程度（low / medium / high）
+系統採三層階層式模型（Hierarchical Pipeline），每層依序執行，前一層的結果作為下一層的輸入。
+
+2. 資料集說明
+項目	內容
+總筆數	10,000 筆
+正常信件	4,000 筆（40%）
+釣魚信件	6,000 筆（60%）
+特徵總數	98 個（原始）→ 76 個（排除 leakage 後）
+釣魚類型數	10 種
+Severity 分佈：
+
+high：4,488 筆
+low：4,245 筆
+medium：1,267 筆（最少，影響 Model C 的 medium 預測品質）
+注意： 此資料集為合成資料（synthetic dataset），特徵分佈由人工規則生成，Model A 和 Model B 的 100% 準確率反映資料集特性，而非模型在真實郵件上的泛化能力。
+
+3. 特徵工程
+共 76 個特徵，分為兩大類：
+
+3.1 手工特徵（28 個）
+類別	特徵
+文字長度	char_count、word_count、sentence_count、avg_word_length、avg_sentence_len
+標點風格	exclamation_count、question_count、uppercase_word_count、uppercase_ratio、special_char_count
+詞彙分數	urgency_score、financial_score、authority_score、credential_score、threat_score、pii_request_score、brand_impersonation_score、social_engineering_score、total_suspicious_score
+合成 URL	has_url、url_count、has_suspicious_domain、url_text_mismatch、has_ip_url
+合成寄件者	sender_domain_suspicious、display_name_mismatch、reply_to_mismatch、has_attachment
+3.2 TF-IDF 詞彙特徵（48 個）
+從郵件 body 文字中擷取 top-50 bigram 詞彙的 TF-IDF 值（tfidf_* 前綴），詞彙表在第一次執行時固定儲存於 tfidf_vocabulary.pkl。
+
+3.3 排除的 Data Leakage 欄位
+訓練前排除以下 21 個欄位，避免模型學到「捷徑」：
+
+第一輪（直接由 label 衍生）：
+risk_prediction、risk_score、confidence、severity_encoded、type_* 系列（10 個）
+
+第二輪（資料集生成規則造成的結構性洩漏）：
+
+特徵	與 label 相關係數
+has_keywords_block	+1.000
+has_subject_line	-1.000
+has_signature	+0.969
+tfidf_best	只出現在正常信件
+tfidf_subject	只出現在正常信件
+keyword_count	+0.924
+has_greeting	+0.919
+4. 三層模型架構
+4.1 Model A — 是否為釣魚（Binary）
+輸入： 76 維特徵向量
+輸出： 0（正常）或 1（釣魚）
+演算法： XGBoost
+訓練時間： 0.70 秒
+測試集準確率： 100%（合成資料特性）
+4.2 Model B — 釣魚類型（Multi-class，11 類）
+輸入： 76 維特徵向量
+輸出： 11 種類別之一（含 legitimate）
+演算法： XGBoost
+訓練時間： 2.70 秒
+測試集準確率： 100%（合成資料特性）
+類別對應：
+
+編號	類別	中文說明
+0	authority_scam	權威假冒
+1	credential_harvesting	憑證竊取
+2	financial_scam	財務詐騙
+3	generic_phishing	一般釣魚
+4	legitimate	正常信件
+5	romance_dating	交友詐騙
+6	social_engineering	社交工程
+7	social_engineering_advanced	進階社交工程
+8	tech_support	技術支援詐騙
+9	threats	威脅勒索
+10	urgency	緊迫威脅
+4.3 Model C — 嚴重程度（Multi-class，3 類）
+輸入： 76 維特徵 + 11 維 Model B 類型機率 = 87 維
+輸出： low / medium / high
+演算法： XGBoost
+訓練時間： 2.88 秒
+測試集準確率： 87%，F1 macro 0.73
+Model C 把 Model B 的輸出加進輸入，讓模型能學到「某些釣魚類型本來就比較嚴重」的關係（如 credential_harvesting 幾乎都是 high）。
+
+各類別效能：
+
+類別	Precision	Recall	F1
+high	0.81	0.99	0.89
+low	0.99	0.95	0.97
+medium	0.53	0.22	0.31
+medium 效能最差的原因： 資料集中 medium 只有 1,267 筆，遠少於 high（4,488）和 low（4,245），類別不平衡導致模型對 medium 的識別能力較弱。換真實資料後預期改善。
+
+4.4 訓練時間摘要
+模型	任務	準確率	F1 (macro)	訓練時間
+Model A	Is phishing?	1.000	1.000	0.70s
+Model B	Phishing type	1.000	1.000	2.70s
+Model C	Severity	0.869	0.725	2.88s
+合計				6.28s
+5. 輸出檔案說明
+5.1 PKL 檔案
+訓練完成後會產生以下 pkl 檔案，使用 joblib 序列化，供推論時載入：
+
+檔案	大小	存的內容	用途
+model_a_binary.pkl	115.1 KB	XGBoost 模型參數（樹結構、權重）	判斷是否為釣魚
+model_b_type.pkl	657.9 KB	XGBoost 模型參數	判斷釣魚類型
+model_c_severity.pkl	604.0 KB	XGBoost 模型參數	判斷嚴重程度
+label_encoder_type.pkl	0.7 KB	類別名稱與數字的對應表	把 Model B 輸出的數字轉回文字
+label_encoder_severity.pkl	0.5 KB	類別名稱與數字的對應表	把 Model C 輸出的數字轉回文字
+feature_cols.pkl	1.3 KB	76 個特徵欄位名稱清單（有序）	確保推論時特徵排列順序與訓練一致
+hand_feature_cols.pkl	0.5 KB	手工特徵欄位名稱清單	SHAP 分析時區分手工特徵和 TF-IDF 特徵
+tfidf_vocabulary.pkl	1.3 KB	TF-IDF 詞彙表（詞 → 索引的 dict）	確保推論時 TF-IDF 向量化結果與訓練一致
+重要： tfidf_vocabulary.pkl 是讓結果穩定的關鍵。TF-IDF 每次重新 fit 選出的詞彙可能略有不同，透過固定詞彙表確保推論結果一致。
+
+5.2 圖表檔案
+檔案	內容
+confusion_matrices.png	三個模型的 Confusion Matrix 並排圖
+shap_beeswarm_modelA.png	Model A 的 SHAP Beeswarm Plot，顯示全局特徵重要性
+shap_per_type.png	各釣魚類型的 SHAP 特徵重要性子圖（10 個子圖）
+6. 推論函式說明
+6.1 基本使用（只輸出三個 label）
+result = analyze_email(email_text)
+# {
+#   'is_phishing':   1,
+#   'risk_score':    0.9997,
+#   'phishing_type': 'credential_harvesting',
+#   'type_confidence': 0.9995,
+#   'severity':      'high'
+# }
+6.2 加上 SHAP 說明（show_shap=True）
+result = analyze_email(email_text, show_shap=True)
+# 多一個 top_features 欄位：
+# 'top_features': [
+#   ('tfidf_account', 0.230, 3.720),       # (特徵名, 特徵值, SHAP 貢獻)
+#   ('total_suspicious_score', 5.0, 2.789),
+#   ('sender_domain_suspicious', 0.6, 0.405),
+#   ...
+# ]
+6.3 正常信件的輸出
+result = analyze_email(legit_email)
+# {
+#   'is_phishing':   0,
+#   'risk_score':    0.001,
+#   'phishing_type': 'legitimate',
+#   'severity':      'low'
+# }
+說明： 若 Model A 判定為正常信件（is_phishing=0），Model B 和 Model C 不會執行，直接回傳 legitimate 和 low。
+
+7. 與 LightRAG 的串接設計
+ML pipeline 的輸出可以直接作為 LightRAG 的查詢輸入：
+
+ML Pipeline 輸出
+    ├── phishing_type → 對應 ATT&CK 技術（如 credential_harvesting → T1566.002）
+    ├── severity      → 嚴重程度說明
+    └── top_features  → SHAP 特徵說明
+          ↓
+LightRAG 查詢字串（自動生成）
+          ↓
+LightRAG hybrid mode 查詢 ATT&CK 知識庫
+          ↓
+SOC 分析師收到完整分析報告
+網頁那邊串接時，載入 pkl 檔案後直接呼叫 analyze_email() 取得結果，不需要 rawdata.csv。
+
+8. 範例輸出
+8.1 釣魚信件
+Email: Dear user, your account requires verification. To restore access,
+       reset your password and enter your username, 2FA verification code...
+
+is_phishing     : 1
+risk_score      : 0.9997
+phishing_type   : credential_harvesting
+type_confidence : 0.9995
+severity        : high
+
+top_features:
+  tfidf_account          : 0.230  (SHAP +3.720)
+  total_suspicious_score : 5.000  (SHAP +2.789)
+  sender_domain_suspicious: 0.600 (SHAP +0.405)
+  char_count             : 151    (SHAP +0.179)
+  url_count              : 2.000  (SHAP +0.070)
+SHAP 說明：tfidf_account 貢獻最大（+3.720），代表郵件中出現大量帳號相關詞彙是主要觸發因素；total_suspicious_score=5 代表多個可疑詞彙（verify、password、pin 等）同時出現。
+
+8.2 正常信件
+Email: Subject: Quarterly roadmap
+       Attaching the draft proposal. Feedback by Friday would be appreciated...
+
+is_phishing   : 0
+risk_score    : 0.001
+phishing_type : legitimate
+severity      : low
+9. 限制與未來工作
+現有限制：
+
+資料集為合成資料，Model A/B 的 100% 準確率無法代表真實場景
+Model C 的 medium 類別 F1 僅 0.31，需要更多 medium 樣本或調整分類門檻
+合成特徵（sender_domain_suspicious 等）使用固定平均值作為推論估計，不反映真實信件的實際狀況
+未來工作：
+
+換用真實標記資料集（Enron Email Dataset + SpamAssassin）重新訓練
+整合完整 MITRE ATT&CK STIX 資料集提升 LightRAG 分析品質
+設計網頁介面，把 ML pipeline 和 LightRAG 查詢完整串接

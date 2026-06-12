@@ -1,0 +1,11 @@
+# 忽略壓縮檔
+*.zip
+*.rar
+*.tar.gz
+
+# 忽略特定的大資料夾
+報告文件/
+
+# 如果 LightRAG 是你另外下載的套件，不需要重複上傳，也可以忽略
+
+LightRAG_Benchmark/

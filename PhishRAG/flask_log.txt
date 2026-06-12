@@ -1,0 +1,23 @@
+2026-06-07 16:54:58,612 INFO æ­\ufffd\ufffd\ufffd¨å\ufffd\ufffd C:\Users\games\OneDrive\Desktop\PhishRAGè³\ufffd\ufffd\ufffd\ufffdå¤¾\PhishRAG\PhishRAG_MLPipeline è¼\ufffd\ufffd\ufffd\ufffd ML \ufffd\ufffd\ufffdä»\ufffd...
+Traceback (most recent call last):
+  File "C:\Users\games\OneDrive\Desktop\PhishRAGè³\ufffd\ufffd\ufffd\ufffdå¤¾\PhishRAG\app.py", line 28, in <module>
+    model_a      = joblib.load(os.path.join(ML_DIR, 'model_a_binary.pkl'))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\joblib\numpy_pickle.py", line 749, in load
+    obj = _unpickle(
+          ^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\site-packages\joblib\numpy_pickle.py", line 626, in _unpickle
+    obj = unpickler.load()
+          ^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\pickle.py", line 1213, in load
+    dispatch[key[0]](self)
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\pickle.py", line 1538, in load_stack_global
+    self.append(self.find_class(module, name))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\pickle.py", line 1582, in find_class
+    return _getattribute(sys.modules[module], name)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\games\miniconda3\envs\PhishRAG\Lib\pickle.py", line 331, in _getattribute
+    raise AttributeError("Can't get attribute {!r} on {!r}"
+AttributeError: Can't get attribute 'XGBoostLabelEncoder' on <module 'xgboost.compat' from 'C:\\Users\\games\\miniconda3\\envs\\PhishRAG\\Lib\\site-packages\\xgboost\\compat.py'>
+ERROR conda.cli.main_run:execute(148): `conda run python app.py` failed. (See above for error)
