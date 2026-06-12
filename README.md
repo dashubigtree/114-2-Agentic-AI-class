@@ -10,3 +10,5 @@ GitHub: mitre-attack/attack-stix-data
 - Lundberg & Lee (2017). SHAP.  NeurIPS 2017
 - Es et al. (2023). RAGAS.  —arXiv:2309.15217
 - Edge et al. (2024). GraphRAG. —  arXiv:2404.16130
+
+note: 因為資料庫太大，所以我們拿掉 lightrag-package/init/01_full_backup.sql （16份文件的數據）
