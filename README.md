@@ -104,6 +104,14 @@ ATT&CK 知識庫採以釣魚技術為核心的星狀圖譜，串連緩解措施�
 - Es et al. (2023), [RAGAS](https://arxiv.org/abs/2309.15217)
 - Edge et al. (2024), [GraphRAG](https://arxiv.org/abs/2404.16130)
 
+## 開源框架致謝
+
+本專案的知識圖譜檢索服務與部分部署架構，參考並整合 [HKUDS/LightRAG](https://github.com/HKUDS/LightRAG) 開源專案。
+
+LightRAG 是採用 MIT License 的檢索增強生成框架；其原始授權與版權聲明保留於本儲存庫的 [`LightRAG/LICENSE`](LightRAG/LICENSE)。PhishRAG 在此基礎上，整合 MITRE ATT&CK 知識庫、XGBoost 郵件風險分析、Flask API、Streamlit 介面與 PostgreSQL／Apache AGE 儲存架構。
+
+本專案與 LightRAG 原作者無隸屬或合作關係。
+
 ## 本機執行
 
 ### 前置需求
